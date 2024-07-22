@@ -16,8 +16,12 @@ class TcpServer : public QWidget
 public:
     TcpServer(QWidget *parent = nullptr);
     ~TcpServer();
+    void loadConfig();
 
 private:
     Ui::TcpServer *ui;
+    QString m_strIP;
+    quint16 m_usPort;
+
 };
 #endif // TCPSERVER_H
