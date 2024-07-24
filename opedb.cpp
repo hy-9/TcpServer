@@ -49,9 +49,42 @@ bool OpeDB::handleRegist(const char *name, const char *pwd)
         return false;
     }
     QString data =
-        QString("insert into usrInfo(name, pwd) values(%1,%2)")
+        QString("insert into usrInfo(name, pwd) values(\'%1\',\'%2\')")
                        .arg(name).arg(pwd);
-    qDebug()<<data;
+    qDebug()<< "注册操作：" <<data;
     QSqlQuery query;
     return query.exec(data);
+}
+
+bool OpeDB::handleLogin(const char *name, const char *pwd)
+{
+    if (NULL == name || NULL == pwd) {
+        return false;
+    }
+    QString data =
+        QString("select * from usrInfo where name=\'%1\' and pwd=\'%2\' and online=0")
+            .arg(name).arg(pwd);
+    qDebug()<< "登录操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    if(query.next()){
+        data = QString("update usrInfo set online=1 where name=\'%1\'")
+                   .arg(name);
+        QSqlQuery query;
+        query.exec(data);
+        return true;
+    }else{return false;}
+
+}
+
+void OpeDB::handleOffline(const char *name)
+{
+    if (NULL == name) {
+        qDebug()<<"客户端退出错误：用户名为空";
+    }
+    QString data = QString("update usrInfo set online=0 where name=\'%1\'")
+               .arg(name);
+    QSqlQuery query;
+    qDebug()<<"客户端退出"<<data;
+    query.exec(data);
 }
