@@ -1,4 +1,5 @@
 #include "opedb.h"
+#include <QStringList>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QMessageBox>
@@ -75,6 +76,21 @@ bool OpeDB::handleLogin(const char *name, const char *pwd)
         return true;
     }else{return false;}
 
+}
+
+QStringList OpeDB::handleAllOnline()
+{
+    QStringList result;
+    result.clear();
+    QString data =
+        QString("select name from usrInfo where online=1");
+    qDebug()<< "查询所有用户操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    while (query.next()) {
+        result.append(query.value(0).toString());
+    }
+    return result;
 }
 
 void OpeDB::handleOffline(const char *name)

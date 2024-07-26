@@ -1,6 +1,5 @@
 #ifndef OPEDB_H
 #define OPEDB_H
-
 #include <QObject>
 class QSqlDatabase;
 class OpeDB : public QObject
@@ -14,6 +13,7 @@ public:
 
     bool handleRegist(const char *name,const char *pwd);
     bool handleLogin(const char *name,const char *pwd);
+    QStringList handleAllOnline();
     void handleOffline(const char *name);
 
 signals:
