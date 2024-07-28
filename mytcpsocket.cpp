@@ -78,6 +78,29 @@ void MyTcpSocket::recvMsg()
         respdu = NULL;
         break;
     }
+    case ENUM_MSG_TYPE_SEARCH_USR_REQUEST:{
+        char caName[32] = {'\0'};
+        memcpy(caName, pdu->caData, 32);
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_SEARCH_USR_RESPOND;
+        switch (OpeDB::getInstance().handleUrs(caName)) {
+        case -1:
+            strcpy(respdu->caData, SEARCH_USR_NO);
+            break;
+        case 0:
+            strcpy(respdu->caData, SEARCH_USR_OFFLINE);
+            break;
+        case 1:
+            strcpy(respdu->caData, SEARCH_USR_ONLINE);
+            break;
+        default:
+            break;
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }
     default:
     {break;}
     }

@@ -104,3 +104,20 @@ void OpeDB::handleOffline(const char *name)
     qDebug()<<"客户端退出"<<data;
     query.exec(data);
 }
+
+int OpeDB::handleUrs(const char *name)
+{
+    if (NULL == name) {
+        qDebug()<<"客户端退出错误：用户名为空";
+    }
+    QString data = QString("select online from usrInfo where name=\'%1\'")
+                       .arg(name);
+    QSqlQuery query;
+    qDebug()<<"用户查询"<<data;
+    query.exec(data);
+    if(query.next()){
+        return query.value(0).toInt();
+    }else{
+        return -1;
+    }
+}
