@@ -85,14 +85,53 @@ void MyTcpSocket::recvMsg()
         respdu->uiMsgType = ENUM_MSG_TYPE_SEARCH_USR_RESPOND;
         switch (OpeDB::getInstance().handleUrs(caName)) {
         case -1:
+        {
             strcpy(respdu->caData, SEARCH_USR_NO);
             break;
+        }
         case 0:
+        {
             strcpy(respdu->caData, SEARCH_USR_OFFLINE);
             break;
+        }
         case 1:
+        {
             strcpy(respdu->caData, SEARCH_USR_ONLINE);
             break;
+        }
+        default:
+            break;
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }
+    case ENUM_MSG_TYPE_ADD_FRIEND_REQUEST:{
+        char caSenderName[32] = {'\0'};
+        char caName[32] = {'\0'};
+        memcpy(caSenderName, pdu->caData, 32);
+        memcpy(caName, pdu->caData+32, 32);
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_ADD_FRIEND_RESPOND;
+        switch (OpeDB::getInstance().handleFriend(caSenderName, caName)) {
+        case -1:
+        {
+            strcpy(respdu->caData, ADD_FRIEND_FAILED);
+            break;
+        }case 0:
+        {
+            strcpy(respdu->caData, ADD_FRIEND_EXIST);
+            break;
+        }case 1:
+        {
+            if(OpeDB::getInstance().addFriend(caSenderName, caName)){
+                strcpy(respdu->caData, ADD_FRIEND_OK);
+            }else{
+                strcpy(respdu->caData, ADD_FRIEND_FAILED);
+            }
+            break;
+        }
         default:
             break;
         }

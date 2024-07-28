@@ -33,6 +33,7 @@ void OpeDB::init()
                                .arg(query.value(2).toString());
             qDebug()<<data;
         }
+        query.exec("update usrInfo set online=0");
     }else {
         QMessageBox::critical(NULL, "数据库连接", "连接失败");
     }
@@ -97,6 +98,7 @@ void OpeDB::handleOffline(const char *name)
 {
     if (NULL == name) {
         qDebug()<<"客户端退出错误：用户名为空";
+        return;
     }
     QString data = QString("update usrInfo set online=0 where name=\'%1\'")
                .arg(name);
@@ -108,12 +110,62 @@ void OpeDB::handleOffline(const char *name)
 int OpeDB::handleUrs(const char *name)
 {
     if (NULL == name) {
-        qDebug()<<"客户端退出错误：用户名为空";
+        qDebug()<<"查询错误：用户名为空";
+        return 0;
     }
     QString data = QString("select online from usrInfo where name=\'%1\'")
                        .arg(name);
     QSqlQuery query;
     qDebug()<<"用户查询"<<data;
+    query.exec(data);
+    if(query.next()){
+        return query.value(0).toInt();
+    }else{
+        return -1;
+    }
+}
+
+int OpeDB::handleFriend(const char *senderName, const char *name)
+{
+    if (NULL == name || NULL == senderName) {
+        qDebug()<<"添加好友错误：用户名为空";
+        return -1;
+    }
+    QString data = QString("select * from friendInfo where id=(select id from usrInfo where name=\'%1\') "
+                           "and friendId=(select id from usrInfo where name=\'%2\')")
+                       .arg(senderName)
+                       .arg(name);
+    QSqlQuery query;
+    qDebug()<<"好友查询"<<data;
+    query.exec(data);
+    if(query.next()){
+        return 0;
+    }else{
+        return 1;
+    }
+}
+
+bool OpeDB::addFriend(const char *senderName, const char *name)
+{
+    QString data =
+        QString("insert into friendInfo(id, friendId) values(\'%1\',\'%2\')")
+                       .arg(getId(senderName)).arg(getId(name));
+    qDebug()<< "添加好友操作：" <<data;
+    QSqlQuery query;
+    return query.exec(data);
+}
+
+int OpeDB::getId(const char *name)
+{
+    if (NULL == name) {
+        qDebug()<<"查询ID失败：用户名为空";
+        return -1;
+    }
+    QString data =
+        QString("select id from usrInfo where name=\'%1\'")
+            .arg(name);
+    qDebug()<< "查询ID操作：" <<data;
+    QSqlQuery query;
     query.exec(data);
     if(query.next()){
         return query.value(0).toInt();
