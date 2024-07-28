@@ -173,3 +173,47 @@ int OpeDB::getId(const char *name)
         return -1;
     }
 }
+
+QString OpeDB::getName(int id)
+{
+    QString data =
+        QString("select name from usrInfo where id=\'%1\'")
+            .arg(id);
+    qDebug()<< "查询用户名操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    if(query.next()){
+        return query.value(0).toString();
+    }else{
+        return "";
+    }
+}
+
+QStringList OpeDB::getShowFrieng(const char *name)
+{
+    QStringList result;
+    result.clear();
+    QList<int> Friends;
+    Friends.clear();
+    int nameId = getId(name);
+    QString data =
+        QString("select friendId from friendInfo where id=\'%1\'")
+            .arg(nameId);
+    qDebug()<< "查询好友ID操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    while (query.next()) {
+        result.append(getName(query.value(0).toInt()));
+    }
+    return result;
+}
+
+bool OpeDB::deleteFriend(const char *senderName, const char *name)
+{
+    QString data =
+        QString("delete from friendInfo where id=\'%1\' and friendId=\'%2\'")
+            .arg(getId(senderName)).arg(getId(name));
+    qDebug()<< "删除好友操作：" <<data;
+    QSqlQuery query;
+    return query.exec(data);
+}

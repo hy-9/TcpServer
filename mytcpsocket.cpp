@@ -140,6 +140,40 @@ void MyTcpSocket::recvMsg()
         respdu = NULL;
         break;
     }
+    case ENUM_MSG_TYPE_SHOW_FRIEND_REQUEST:{
+        char caName[32] = {'\0'};
+        memcpy(caName, pdu->caData, 32);
+        QStringList ret = OpeDB::getInstance().getShowFrieng(caName);
+        uint uiMsgLen = ret.size()*32;
+        PDU *respdu = mkPDU(uiMsgLen);
+        respdu->uiMsgType = ENUM_MSG_TYPE_SHOW_FRIEND_RESPOND;
+        for (int i = 0; i < ret.size(); ++i) {
+            memcpy((char *)respdu->caMsg+i*32
+                   , ret.at(i).toStdString().c_str()
+                   , ret.at(i).size());
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }
+    case ENUM_MSG_TYPE_DELETE_FRIEND_REQUEST:{
+        char caSenderName[32] = {'\0'};
+        char caName[32] = {'\0'};
+        memcpy(caSenderName, pdu->caData, 32);
+        memcpy(caName, pdu->caData+32, 32);
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_DELETE_FRIEND_RESPOND;
+        if (OpeDB::getInstance().deleteFriend(caSenderName, caName)) {
+            strcpy(respdu->caData, DELETE_FRIEND_OK);
+        }else{
+            strcpy(respdu->caData, DELETE_FRIEND_FAILED);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }
     default:
     {break;}
     }
