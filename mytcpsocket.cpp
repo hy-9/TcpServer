@@ -2,6 +2,7 @@
 #include "protocol.h"
 #include "opedb.h"
 #include <QDebug>
+#include <QDir>
 #include <QStringList>
 
 MyTcpSocket::MyTcpSocket(QObject *parent)
@@ -34,6 +35,8 @@ void MyTcpSocket::recvMsg()
         respdu->uiMsgType = ENUM_MSG_TYPE_REGIST_RESPOND;
         if (OpeDB::getInstance().handleRegist(caName,caPwd)) {
             strcpy(respdu->caData,REGIST_OK);
+            QDir dir;
+            qDebug()<< QString("./%1").arg(caName) <<"创建新文件夹：" << dir.mkdir(QString("./%1").arg(caName));
         }else{
             strcpy(respdu->caData,REGIST_FAILED);
         }
@@ -208,6 +211,28 @@ void MyTcpSocket::recvMsg()
             strcpy(respdu->caData, SENDER_CHAR_OK);
         }else {
             strcpy(respdu->caData, SENDER_CHAR_FAILED);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_CREAT_DIR_REQUEST:{
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_CREAT_DIR_RESPOND;
+        QDir dir;
+        QString strCurPath = QString("%1").arg((char *)(pdu->caMsg));
+        if (dir.exists(strCurPath)) {
+            QString strNewDir = QString("%1/%2")
+                                    .arg((char *)(pdu->caMsg))
+                                    .arg((char *)(pdu->caData+32));
+            if (dir.exists(strNewDir)) {
+                strcpy(respdu->caData, CREAT_DIR_PATH_REP);
+            }else{
+                qDebug()<< strNewDir <<"创建新文件夹：" << dir.mkdir(strNewDir);
+                strcpy(respdu->caData, CREAT_DIR_OK);
+            }
+        }else{
+            strcpy(respdu->caData, CREAT_DIR_PATH_NO);
         }
         write((char *)respdu, respdu->uiPDULen);
         free(respdu);
