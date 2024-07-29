@@ -24,6 +24,9 @@ public:
     QString getName(int id);
     QStringList getShowFrieng(const char *name);
     bool deleteFriend(const char *senderName,const char *name);
+    QStringList handleChar(const char *senderName,const char *name);
+    void setRead(const int senderNameID, const int nameID);
+    bool addChar(const char *senderName,const char *name,const char *mes);
 
 signals:
 

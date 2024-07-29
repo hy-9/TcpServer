@@ -144,11 +144,11 @@ void MyTcpSocket::recvMsg()
         char caName[32] = {'\0'};
         memcpy(caName, pdu->caData, 32);
         QStringList ret = OpeDB::getInstance().getShowFrieng(caName);
-        uint uiMsgLen = ret.size()*32;
+        uint uiMsgLen = ret.size()*64;
         PDU *respdu = mkPDU(uiMsgLen);
         respdu->uiMsgType = ENUM_MSG_TYPE_SHOW_FRIEND_RESPOND;
         for (int i = 0; i < ret.size(); ++i) {
-            memcpy((char *)respdu->caMsg+i*32
+            memcpy((char *)respdu->caMsg+i*64
                    , ret.at(i).toStdString().c_str()
                    , ret.at(i).size());
         }
@@ -168,6 +168,46 @@ void MyTcpSocket::recvMsg()
             strcpy(respdu->caData, DELETE_FRIEND_OK);
         }else{
             strcpy(respdu->caData, DELETE_FRIEND_FAILED);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }
+    case ENUM_MSG_TYPE_SHOW_CHAR_REQUEST:{
+        char caSenderName[32] = {'\0'};
+        char caName[32] = {'\0'};
+        memcpy(caSenderName, pdu->caData, 32);
+        memcpy(caName, pdu->caData+32, 32);
+        QStringList ret = OpeDB::getInstance().handleChar(caSenderName, caName);
+        uint uiMsgLen = ret.size()*64;
+        PDU *respdu = mkPDU(uiMsgLen);
+        respdu->uiMsgType = ENUM_MSG_TYPE_SHOW_CHAR_RESPOND;
+        for (int i = 0; i < ret.size(); ++i) {
+            memcpy((char *)respdu->caMsg+i*64
+                   , ret.at(i).toStdString().c_str()
+                   , ret.at(i).size());
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_SENDER_CHAR_REQUEST:{
+        char caSenderName[32] = {'\0'};
+        char caName[32] = {'\0'};
+        char caChar[64] = {'\0'};
+        memcpy(caSenderName, pdu->caData, 32);
+        memcpy(caName, pdu->caData+32, 32);
+        memcpy(caChar, pdu->caMsg, pdu->uiMsgLen);
+
+        qDebug()<<caChar;
+
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_SENDER_CHAR_RESPOND;
+        if (OpeDB::getInstance().addChar(caSenderName,caName,caChar)) {
+            strcpy(respdu->caData, SENDER_CHAR_OK);
+        }else {
+            strcpy(respdu->caData, SENDER_CHAR_FAILED);
         }
         write((char *)respdu, respdu->uiPDULen);
         free(respdu);

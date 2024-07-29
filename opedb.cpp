@@ -4,6 +4,7 @@
 #include <QSqlQuery>
 #include <QMessageBox>
 #include <QDebug>
+#include <QDateTime>
 
 OpeDB::OpeDB(QObject *parent)
     : QObject{parent}
@@ -152,6 +153,10 @@ bool OpeDB::addFriend(const char *senderName, const char *name)
                        .arg(getId(senderName)).arg(getId(name));
     qDebug()<< "添加好友操作：" <<data;
     QSqlQuery query;
+    query.exec(data);
+    data =
+        QString("insert into friendInfo(id, friendId) values(\'%1\',\'%2\')")
+            .arg(getId(name)).arg(getId(senderName));
     return query.exec(data);
 }
 
@@ -193,8 +198,6 @@ QStringList OpeDB::getShowFrieng(const char *name)
 {
     QStringList result;
     result.clear();
-    QList<int> Friends;
-    Friends.clear();
     int nameId = getId(name);
     QString data =
         QString("select friendId from friendInfo where id=\'%1\'")
@@ -203,7 +206,18 @@ QStringList OpeDB::getShowFrieng(const char *name)
     QSqlQuery query;
     query.exec(data);
     while (query.next()) {
+        // QSqlQuery tem_query;
+        // data =
+        //     QString("select * from charInfo where senderId=\'%1\' and joinId=\'%2\' and read=1")
+        //            .arg(query.value(0).toInt()).arg(nameId);
+        // qDebug()<< "查询未读操作：" <<data;
+        // tem_query.exec(data);
+        // if (tem_query.first()) {
+        //     result.append(getName(query.value(0).toInt())
+        //                   +(QString)"(新信息)");
+        // }else{
         result.append(getName(query.value(0).toInt()));
+        // }
     }
     return result;
 }
@@ -214,6 +228,60 @@ bool OpeDB::deleteFriend(const char *senderName, const char *name)
         QString("delete from friendInfo where id=\'%1\' and friendId=\'%2\'")
             .arg(getId(senderName)).arg(getId(name));
     qDebug()<< "删除好友操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    data =
+        QString("delete from friendInfo where id=\'%1\' and friendId=\'%2\'")
+            .arg(getId(name)).arg(getId(senderName));
+    return query.exec(data);
+}
+
+QStringList OpeDB::handleChar(const char *senderName, const char *name)
+{
+    QStringList result;
+    result.clear();
+    int senderNameId = getId(senderName);
+    int nameId = getId(name);
+    QString data =
+        QString("select senderId,char,time from charInfo "
+                           "where (senderId=\'%1\' and joinId=\'%2\') "
+                           "or (senderId=\'%3\' and joinId=\'%4\')")
+            .arg(nameId).arg(senderNameId).arg(senderNameId).arg(nameId);
+    qDebug()<< "查询好友对话操作：" <<data;
+    QSqlQuery query;
+    query.exec(data);
+    while (query.next()) {
+        if (query.value(0).toInt()==senderNameId) {
+            result.append(query.value(2).toString()+" "+
+                          senderName+": "+
+                          query.value(1).toString());
+        }else{
+            result.append(query.value(2).toString()+" "+
+                          senderName+": "+
+                          query.value(1).toString());
+        }
+
+    }
+    setRead(nameId, senderNameId);
+    return result;
+}
+
+void OpeDB::setRead(const int senderNameID, const int nameID)
+{
+    QString data = QString("update charInfo set read=0 where senderId=\'%1\' and joinId=\'%2\'")
+                       .arg(senderNameID).arg(nameID);
+    QSqlQuery query;
+    qDebug()<<"设置已读"<<data;
+    query.exec(data);
+}
+
+bool OpeDB::addChar(const char *senderName, const char *name, const char *mes)
+{
+    QString data =
+        QString("insert into charInfo(senderId, joinId, char, time, read) values(\'%1\',\'%2\',\'%3\',\'%4\',1)")
+            .arg(getId(senderName)).arg(getId(name)).arg(mes)
+            .arg(QDateTime::currentDateTime().toString("yy-MM-dd hh:mm"));
+    qDebug()<< "发送信息操作：" <<data;
     QSqlQuery query;
     return query.exec(data);
 }
