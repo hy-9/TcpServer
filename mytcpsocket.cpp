@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QStringList>
+#include <QFileInfoList>
 
 MyTcpSocket::MyTcpSocket(QObject *parent)
     : QTcpSocket{parent}
@@ -233,6 +234,30 @@ void MyTcpSocket::recvMsg()
             }
         }else{
             strcpy(respdu->caData, CREAT_DIR_PATH_NO);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_SHOW_FLIE_REQUEST:{
+        FLIE *flie = NULL;
+        QString strNewFlie = QString("%1").arg((char *)(pdu->caMsg));
+        QDir dir(strNewFlie);
+        QFileInfoList flieName = dir.entryInfoList();
+        PDU *respdu = mkPDU((sizeof(FLIE))*(flieName.size()-2));
+        respdu->uiMsgType = ENUM_MSG_TYPE_SHOW_FLIE_RESPOND;
+        QString strFlieName;
+        for (int var = 2; var < flieName.size(); ++var) {
+            flie = (FLIE *)(respdu->caMsg)+var-2;
+            strFlieName = flieName[var].fileName();
+            memcpy(flie->flieName, strFlieName.toStdString().c_str()
+                   , strFlieName.size());
+            flie->flieSize = flieName[var].size()/1024;
+            if (flieName[var].isFile()) {
+                flie->isDir=0;
+            }else{
+                flie->isDir=1;
+            }
         }
         write((char *)respdu, respdu->uiPDULen);
         free(respdu);
