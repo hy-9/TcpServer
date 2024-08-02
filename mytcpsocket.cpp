@@ -270,7 +270,6 @@ void MyTcpSocket::recvMsg()
         memcpy(strFlie, pdu->caData, 32);
         QString strPath = QString("%1/%2")
                               .arg((char *)(pdu->caMsg)).arg(strFlie);
-        qDebug()<<"删除路径"<<strPath;
         QFileInfo flieInfo(strPath);
         bool validation = false;
         if (flieInfo.isFile()) {
@@ -287,6 +286,28 @@ void MyTcpSocket::recvMsg()
             strcpy(respdu->caData, DELETE_FLIE_OK);
         }else{
             strcpy(respdu->caData, DELETE_FLIE_FAILED);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_RENNAME_FLIE_REQUEST:{
+        char strNewNameFlie[32];
+        char strOldNameFlie[32];
+        memcpy(strNewNameFlie, pdu->caData+32, 32);
+        memcpy(strOldNameFlie, pdu->caData, 32);
+        QString strNewPath = QString("%1/%2.%3")
+                              .arg((char *)(pdu->caMsg)).arg(strNewNameFlie)
+                                 .arg(QFileInfo(strOldNameFlie).suffix());
+        QString strOldPath = QString("%1/%2")
+                              .arg((char *)(pdu->caMsg)).arg(strOldNameFlie);
+        QDir dir;
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_RENNAME_FLIE_RESPOND;
+        if (dir.rename(strOldPath, strNewPath)) {
+            strcpy(respdu->caData, RENNAME_FLIE_OK);
+        }else{
+            strcpy(respdu->caData, RENNAME_FLIE_FAILED);
         }
         write((char *)respdu, respdu->uiPDULen);
         free(respdu);
