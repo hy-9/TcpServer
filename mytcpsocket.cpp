@@ -313,6 +313,42 @@ void MyTcpSocket::recvMsg()
         free(respdu);
         respdu = NULL;
         break;
+    }case ENUM_MSG_TYPE_ENTER_DIR_REQUEST:{
+        PDU *respdu;
+        FLIE *flie = NULL;
+        char strDir[32];
+        memcpy(strDir, pdu->caData, 32);
+        qDebug()<<strDir;
+        QString strNewFlie = QString("%1").arg((char *)(pdu->caMsg));
+        qDebug()<<strNewFlie;
+        QDir existsDir;
+        if (!existsDir.exists(strNewFlie)) {
+            respdu = mkPDU(0);
+            qDebug()<<"c";
+            strcpy(respdu->caData, DIR_INEXISTENCE);
+            respdu->uiMsgType = ENUM_MSG_TYPE_ENTER_DIR_RESPOND;
+        }else{
+            strNewFlie = QString("%1/%2").arg((char *)(pdu->caMsg)).arg(strDir);
+
+            qDebug()<<strNewFlie;
+            QFileInfo flieInfo(strNewFlie);
+            if (flieInfo.isDir()) {
+                QDir dir(strNewFlie);
+                QFileInfoList flieName = dir.entryInfoList();
+                respdu = mkPDU(strNewFlie.size()+1);
+                strcpy(respdu->caData, DIR_ENTER_OK);
+                respdu->uiMsgType = ENUM_MSG_TYPE_ENTER_DIR_RESPOND;
+                strcpy((char *)respdu->caMsg, strNewFlie.toStdString().c_str());
+            }else{
+                respdu = mkPDU(0);
+                respdu->uiMsgType = ENUM_MSG_TYPE_ENTER_DIR_RESPOND;
+                strcpy(respdu->caData, DIR_ENTER_FAILED);
+            }
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
     }
     default:
     {break;}
