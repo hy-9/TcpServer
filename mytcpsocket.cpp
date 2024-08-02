@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QStringList>
 #include <QFileInfoList>
+#include <QFileInfo>
 
 MyTcpSocket::MyTcpSocket(QObject *parent)
     : QTcpSocket{parent}
@@ -250,14 +251,42 @@ void MyTcpSocket::recvMsg()
         for (int var = 2; var < flieName.size(); ++var) {
             flie = (FLIE *)(respdu->caMsg)+var-2;
             strFlieName = flieName[var].fileName();
-            memcpy(flie->flieName, strFlieName.toStdString().c_str()
-                   , strFlieName.size());
+            strcpy(flie->flieName, strFlieName.toStdString().c_str());
             flie->flieSize = flieName[var].size()/1024;
             if (flieName[var].isFile()) {
                 flie->isDir=0;
             }else{
                 flie->isDir=1;
             }
+        }
+
+
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_DELETE_FLIE_REQUEST:{
+        char strFlie[32];
+        memcpy(strFlie, pdu->caData, 32);
+        QString strPath = QString("%1/%2")
+                              .arg((char *)(pdu->caMsg)).arg(strFlie);
+        qDebug()<<"删除路径"<<strPath;
+        QFileInfo flieInfo(strPath);
+        bool validation = false;
+        if (flieInfo.isFile()) {
+            QDir dir;
+            validation = dir.remove(strPath);
+        }else if (flieInfo.isDir()) {
+            QDir dir;
+            dir.setPath(strPath);
+            validation = dir.removeRecursively();
+        }
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_DELETE_FLIE_RESPOND;
+        if (validation) {
+            strcpy(respdu->caData, DELETE_FLIE_OK);
+        }else{
+            strcpy(respdu->caData, DELETE_FLIE_FAILED);
         }
         write((char *)respdu, respdu->uiPDULen);
         free(respdu);
