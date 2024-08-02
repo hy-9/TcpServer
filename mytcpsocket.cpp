@@ -318,19 +318,18 @@ void MyTcpSocket::recvMsg()
         FLIE *flie = NULL;
         char strDir[32];
         memcpy(strDir, pdu->caData, 32);
-        qDebug()<<strDir;
+        // qDebug()<<strDir;
         QString strNewFlie = QString("%1").arg((char *)(pdu->caMsg));
-        qDebug()<<strNewFlie;
+        // qDebug()<<strNewFlie;
         QDir existsDir;
         if (!existsDir.exists(strNewFlie)) {
             respdu = mkPDU(0);
-            qDebug()<<"c";
+            // qDebug()<<"c";
             strcpy(respdu->caData, DIR_INEXISTENCE);
             respdu->uiMsgType = ENUM_MSG_TYPE_ENTER_DIR_RESPOND;
         }else{
             strNewFlie = QString("%1/%2").arg((char *)(pdu->caMsg)).arg(strDir);
-
-            qDebug()<<strNewFlie;
+            // qDebug()<<strNewFlie;
             QFileInfo flieInfo(strNewFlie);
             if (flieInfo.isDir()) {
                 QDir dir(strNewFlie);
