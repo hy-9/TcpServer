@@ -3,6 +3,7 @@
 
 #include <QTcpServer>
 #include <QList>
+#include <QThread>
 class MyTcpSocket;
 class MyTcpServer : public QTcpServer
 {

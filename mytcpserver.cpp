@@ -42,3 +42,4 @@ void MyTcpServer::deleteSocket(MyTcpSocket *mysocket)
     }
     qDebug()<<"}";
 }
+

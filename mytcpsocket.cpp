@@ -3,6 +3,7 @@
 #include "opedb.h"
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QStringList>
 #include <QFileInfoList>
 #include <QFileInfo>
@@ -348,6 +349,54 @@ void MyTcpSocket::recvMsg()
         free(respdu);
         respdu = NULL;
         break;
+    }case ENUM_MSG_TYPE_UPLOAD_FILE_REQUEST:{
+        char caFileName[32] = {'\0'};
+        qint64 fileSize = 0;
+        sscanf(pdu->caData, "%s %lld",caFileName, &fileSize);
+        char *pPath = new char[pdu->uiMsgLen];
+        memcpy(pPath, pdu->caMsg, pdu->uiMsgLen);
+        QString strPath = QString("%1/%2").arg(pPath).arg(caFileName);
+        delete []pPath;
+        pPath = NULL;
+        qDebug()<<"文件: "<<caFileName<<" ("<<fileSize/1024<<"kb)开始上传。";
+        PDU *respdu = mkPDU(0);
+        respdu->uiMsgType = ENUM_MSG_TYPE_UPLOAD_FILE_RESPOND;
+        QDir dir;
+        if (!dir.exists(strPath)) {
+            strcpy(respdu->caData, FILE_CREAT_OK);
+            upLoadFile *upF = new upLoadFile();
+            upF->m_file.setFileName(strPath);
+            upF->m_strPath = strPath;
+            if (upF->m_file.open(QIODevice::WriteOnly)) {
+                upF->m_iTotal = fileSize;
+                upF->m_iRecved = 0;
+            }
+            m_upLoadFileList.append(upF);
+        }else{
+            strcpy(respdu->caData, FILE_CREAT_FAILED);
+        }
+        write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        break;
+    }case ENUM_MSG_TYPE_UPLOAD_DATA_REQUEST:{
+        qDebug()<<"cs";
+        char caFileName[32] = {'\0'};
+        qint64 fileSize = 0;
+        sscanf(pdu->caData, "%s %lld",caFileName, &fileSize);
+        foreach (auto &vate, m_upLoadFileList) {
+            // QString m_strfileName = vate->m_file.fileName();
+            if(vate->m_iTotal == fileSize ){
+                qDebug()<<"文件: "<<caFileName<<" ("<<fileSize/1024<<"kb)上传中。";
+                char *Buff = new char[pdu->uiMsgLen];
+                vate->m_size=pdu->uiMsgLen;
+                memcpy(Buff ,pdu->caMsg, pdu->uiMsgLen);
+                vate->pBuffer = Buff;
+                vate->start();
+                break;
+            }
+        }
+        break;
     }
     default:
     {break;}
@@ -366,4 +415,39 @@ void MyTcpSocket::clientOffline()
 QString MyTcpSocket::getUser_name() const
 {
     return user_name;
+}
+
+MyTcpSocket &MyTcpSocket::getInstance()
+{
+    static MyTcpSocket instance;
+    return instance;
+}
+
+upLoadFile::upLoadFile(QObject *parent) : QThread(parent)
+{}
+
+void upLoadFile::run()
+{
+    PDU *respdu = mkPDU(0);
+    respdu->uiMsgType = ENUM_MSG_TYPE_UPLOAD_DATA_RESPOND;
+    m_file.open(QIODevice::WriteOnly);
+    m_file.write(pBuffer);
+    free(pBuffer);
+    pBuffer = NULL;
+    m_iRecved += m_size;
+    if (m_iTotal == m_iRecved) {
+        m_file.close();
+        strcpy(respdu->caData, UPLOAD_DATA_OK);
+        MyTcpSocket::getInstance().write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        quit();
+    }else if (m_iTotal < m_iRecved) {
+        m_file.close();
+        strcpy(respdu->caData, UPLOAD_DATA_FAILED);
+        MyTcpSocket::getInstance().write((char *)respdu, respdu->uiPDULen);
+        free(respdu);
+        respdu = NULL;
+        quit();
+    }
 }
